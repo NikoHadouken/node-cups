@@ -3,14 +3,15 @@ import { CommandResult, spawn } from './system-util'
 // list jobs
 
 export type JobQueue = Array<{
-  requestId: string
+  id: string
+  printerName: string
   user: string
   size: string
   date: string
 }>
 
 export type QueueOptions = {
-  printer: string
+  printers: string[]
 }
 
 export const getCompletedQueue = async (
@@ -26,19 +27,25 @@ const getQueue = async (
   options?: QueueOptions,
 ): Promise<JobQueue> => {
   const args = ['-W', completed ? 'completed' : 'not-completed']
-  const { printer } = options ?? {}
+  const { printers } = options ?? {}
 
-  if (printer) {
-    args.push('-d', printer)
+  if (printers && printers.length) {
+    args.push('-d', printers.join(','))
   }
   const { stdout } = await spawn('lpstat', args)
   return stdout
     .split('\n')
     .filter((line) => !!line)
-    .map((line) => {
-      const [requestId, user, size, date] = line.split(/\s{2,}/)
+    .map((line) => line.split(/\s{2,}/))
+    .filter((row) => row.length === 4)
+    .map((row) => {
+      const [requestId, user, size, date] = row
+      const pattern = /(.*)-(\d+)$/
+      const match = pattern.exec(requestId)
+      const [_all, printerName, id] = match ?? []
       return {
-        requestId,
+        printerName,
+        id,
         user,
         size,
         date,
@@ -68,9 +75,9 @@ export type PrinterOptions = {
 }
 
 export const getPrinterOptions = async (
-  name: string,
+  printerName: string,
 ): Promise<Array<PrinterOptions>> => {
-  const { stdout } = await spawn('lpoptions', ['-p', name, '-l'])
+  const { stdout } = await spawn('lpoptions', ['-p', printerName, '-l'])
 
   const options: Array<PrinterOptions> = []
 
@@ -107,13 +114,13 @@ export const getPrinterOptions = async (
 }
 
 export const getAllPrinterOptions = async (): Promise<
-  Array<{ name: string; options: PrinterOptions[] }>
+  Array<{ printerName: string; options: PrinterOptions[] }>
 > => {
   const names = await getPrinterNames()
-  const options = names.map(async (name) => {
-    const options = await getPrinterOptions(name)
+  const options = names.map(async (printerName) => {
+    const options = await getPrinterOptions(printerName)
     return {
-      name,
+      printerName,
       options,
     }
   })
