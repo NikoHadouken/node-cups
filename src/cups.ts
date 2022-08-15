@@ -135,6 +135,7 @@ export type PrintParams = {
   copies?: number
   priority?: number
   pages?: string
+  fitToPage?: boolean
   printerOptions: Record<string, string>
 }
 
@@ -147,40 +148,45 @@ type PrintCommand = (lpArgs: string[]) => Promise<CommandResult>
 
 const print =
   (command: PrintCommand) =>
-    async (params?: PrintParams): Promise<PrintResult> => {
-      const { printer, copies, priority, pages, printerOptions } = params ?? {}
-      const lpArgs: string[] = []
+  async (params?: PrintParams): Promise<PrintResult> => {
+    const { printer, copies, priority, pages, fitToPage, printerOptions } =
+      params ?? {}
+    const lpArgs: string[] = []
 
-      if (printer) {
-        lpArgs.push('-d', printer)
-      }
-
-      if (copies) {
-        lpArgs.push('-n', copies.toString())
-      }
-
-      if (priority) {
-        lpArgs.push('-q', priority.toString())
-      }
-
-      if (pages) {
-        lpArgs.push('-P', pages)
-      }
-
-      Object.entries(printerOptions ?? {}).forEach(([key, value]) => {
-        lpArgs.push('-o', `${key}=${value}`)
-      })
-
-      const { stdout } = await command(lpArgs)
-      // example stdout: request id is epson-et-16650-9037 (1 file(s))
-      const pattern = /(\S*-\d+) \(.*\)\n$/
-      const match = pattern.exec(stdout)
-      const requestId = match ? match?.[1] : undefined
-      return {
-        stdout,
-        requestId,
-      }
+    if (printer) {
+      lpArgs.push('-d', printer)
     }
+
+    if (copies) {
+      lpArgs.push('-n', copies.toString())
+    }
+
+    if (priority) {
+      lpArgs.push('-q', priority.toString())
+    }
+
+    if (pages) {
+      lpArgs.push('-P', pages)
+    }
+
+    if (fitToPage) {
+      lpArgs.push('-o', 'fit-to-page')
+    }
+
+    Object.entries(printerOptions ?? {}).forEach(([key, value]) => {
+      lpArgs.push('-o', `${key}=${value}`)
+    })
+
+    const { stdout } = await command(lpArgs)
+    // example stdout: request id is epson-et-16650-9037 (1 file(s))
+    const pattern = /(\S*-\d+) \(.*\)\n$/
+    const match = pattern.exec(stdout)
+    const requestId = match ? match?.[1] : undefined
+    return {
+      stdout,
+      requestId,
+    }
+  }
 
 export const printBuffer = async (
   data: Buffer,
