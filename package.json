@@ -1,6 +1,6 @@
 {
   "name": "node-cups",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Wrapper library for unix cups commands",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
