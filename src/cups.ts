@@ -215,5 +215,5 @@ export const cancelAllJobs = async (printer?: string): Promise<void> => {
 }
 
 export const cancelJob = async (requestId: string): Promise<void> => {
-  spawn('cancel', [requestId])
+  await spawn('cancel', [requestId])
 }
